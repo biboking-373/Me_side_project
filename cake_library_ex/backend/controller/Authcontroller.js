@@ -1,8 +1,9 @@
 const bcrypt = require("bcrypt");
 const User = require('../models/usermodel')
+const jwt = require("jsonwebtoken")
 
 //register
-async function register(req, res){
+exports.register = async (req, res) =>{
     const {username, email, password} = req.body;
     try{
 
@@ -32,21 +33,48 @@ async function register(req, res){
     }
 };
 
-//login
+// login
+
+exports.login = async(req, res) => {
+    const {email, password} = req.body
+
+    try{
+        if (!email || !password){
+            return res.status(400).json({message: "Email and password are required"});
+        }
+
+        const user = await User.findOne({email})  // ← Changed from 'userr'
+        if (!user){
+            return res.status(401).json({message:"Invalid credentials"});
+        }
+
+        const ismatchh = await bcrypt.compare(password, user.password);  // ← Now uses 'user'
+
+        if (!ismatchh){
+            return res.status(401).json({message:"Invalid credentials"});
+        }
+
+        const token = jwt.sign(
+            {id: user._id},  // ← Now uses 'user'
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+        )
+
+        res.status(200).json({
+            message: "You have successfully logged in",
+            token
+        });
+
+    }catch(err){
+        return res.status(500).json({error: err.message});
+    };
+};
 
 
-// async function login(req,res){
-//     const {email,password} = req.body
-
-//     try{
-//     };
-// }
-
+exports.logout = async (req, res) => {
+    res.status(200).json({message: "Logged out successfully"});  // ← Changed to 200
+}
 
 //forgot_password
 
 //reset_password
-
-//new_password
-
-module.exports = { register };
